@@ -44,7 +44,7 @@ ENV/
 ehthumbs.db
 Thumbs.db
 
-# Project specific
+# Project specific - Input media files
 input_media/*.mp4
 input_media/*.avi
 input_media/*.mov
@@ -57,6 +57,12 @@ input_media/*.m4a
 input_media/*.aac
 input_media/*.flac
 input_media/*.ogg
+
+# Output files - Generated transcriptions (should never be committed)
+output_transcriptions/*.txt
+output_transcriptions/*.srt
+output_transcriptions/*.vtt
+output_transcriptions/*.json
 
 # Keep the directories but not the files
 !input_media/.gitkeep
