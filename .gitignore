@@ -1,3 +1,81 @@
-/output_transcriptions/
-/input_media/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+input_media/*.mp4
+input_media/*.avi
+input_media/*.mov
+input_media/*.mkv
+input_media/*.webm
+input_media/*.flv
+input_media/*.mp3
+input_media/*.wav
+input_media/*.m4a
+input_media/*.aac
+input_media/*.flac
+input_media/*.ogg
+
+# Keep the directories but not the files
+!input_media/.gitkeep
+!output_transcriptions/.gitkeep
+!temp/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Configuration
+.env
+.env.local
+config.ini
+
+# Temporary files
+temp/*
+!temp/.gitkeep
+
+# Model cache (Whisper models)
+~/.cache/whisper/
+.cache/
