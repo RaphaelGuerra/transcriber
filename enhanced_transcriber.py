@@ -202,12 +202,12 @@ class EnhancedTranscriber:
         print(f"\n🚀 Starting transcription of: {file_path.name}")
         print(f"   Model: {model_name}")
         print(f"   File size: {file_path.stat().st_size / (1024 * 1024):.1f} MB")
-        
+
         # Estimate time
         estimated_minutes = self.estimate_transcription_time(file_path, model_name)
         print(f"   ⏱️  Estimated time: ~{estimated_minutes:.1f} minutes")
         print()
-        
+
         start_time = time.time()
         
         try:
@@ -215,49 +215,50 @@ class EnhancedTranscriber:
             print("📥 Loading Whisper model...")
             model = whisper.load_model(model_name)
             print("✅ Model loaded successfully!")
-            
+
             # Transcribe with progress
             print("🎬 Transcribing audio...")
             
             transcription_result = {}
-def transcribe_target():
+            def transcribe_target():
                 result = model.transcribe(str(file_path), verbose=False)
                 transcription_result['text'] = result['text']
 
-transcription_thread = threading.Thread(target=transcribe_target)
-transcription_thread.start()
+            transcription_thread = threading.Thread(target=transcribe_target)
+            transcription_thread.start()
 
-with tqdm(total=int(estimated_minutes * 60), desc="Transcription Progress", unit="s") as pbar:
-    while transcription_thread.is_alive():
-        transcription_thread.join(1)
-        pbar.update(1)
-    pbar.n = pbar.total
-    pbar.refresh()
+            with tqdm(total=int(estimated_minutes * 60), desc="Transcription Progress", unit="s") as pbar:
+                while transcription_thread.is_alive():
+                    pbar.update(1)
+                    time.sleep(1)
+                pbar.n = pbar.total
+                pbar.refresh()
 
-transcription = transcription_result.get('text')
+            transcription_thread.join()
+            transcription = transcription_result.get('text')
 
-if transcription is None:
-    raise Exception("Transcription failed.")
+            if transcription is None:
+                raise Exception("Transcription failed.")
 
             # Calculate actual time taken
-elapsed_time = time.time() - start_time
-elapsed_minutes = elapsed_time / 60
+            elapsed_time = time.time() - start_time
+            elapsed_minutes = elapsed_time / 60
 
-print(f"\n✅ Transcription completed!")
-print(f"   ⏱️  Time taken: {elapsed_minutes:.1f} minutes")
-print(f"   📝 Characters: {len(transcription):,}")
+            print(f"\n✅ Transcription completed!")
+            print(f"   ⏱️  Time taken: {elapsed_minutes:.1f} minutes")
+            print(f"   📝 Characters: {len(transcription):,}")
 
             # Save transcription
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-output_filename = f"{file_path.stem}_{timestamp}.txt"
-output_path = self.output_dir / output_filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_filename = f"{file_path.stem}_{timestamp}.txt"
+            output_path = self.output_dir / output_filename
 
-with open(output_path, 'w', encoding='utf-8') as f:
-    f.write(transcription)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(transcription)
 
-print(f"   📄 Saved to: {output_path}")
+            print(f"   📄 Saved to: {output_path}")
 
-return transcription, output_path
+            return transcription, output_path
             
         except Exception as e:
             print(f"❌ Error transcribing {file_path.name}: {e}")
