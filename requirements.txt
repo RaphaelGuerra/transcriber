@@ -1,3 +1,2 @@
 openai-whisper
 tqdm
-ffmpeg-python
