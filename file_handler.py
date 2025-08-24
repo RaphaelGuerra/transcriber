@@ -149,7 +149,7 @@ class FileHandler:
 
         file_size_gb = file_path.stat().st_size / (1024**3)
         if file_size_gb > max_size_gb:
-            return False, ".2f"
+            return False, f"File too large: {file_size_gb:.2f} GB (max: {max_size_gb:.2f} GB)"
 
         return True, "OK"
 
