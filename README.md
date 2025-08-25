@@ -37,8 +37,9 @@ python main.py
 **That's it!** The program automatically:
 
 - ✅ **Detects files** in `input_media/` folder
-- ✅ **Processes all files** and exits cleanly
-- ✅ **Shows interactive menu** if no files found
+- ✅ **Shows interactive file selection** with sizes
+- ✅ **Lets you choose transcription model** (tiny/base/small/medium/large)
+- ✅ **Processes selected files** and exits cleanly
 - ✅ **Handles sleep/wake** during processing
 - ✅ **Saves results** to `output_transcriptions/`
 
@@ -83,8 +84,18 @@ python main.py --list-models
 
 ## Examples
 
+### Interactive Mode (Recommended)
 ```bash
-# Basic transcription
+python main.py
+# → Shows file list with sizes
+# → Select files: "1,3,5" or "all"
+# → Choose model: 1=tiny, 2=base, 3=small, 4=medium, 5=large
+# → Processes selected files automatically
+```
+
+### Direct Commands
+```bash
+# Process specific files
 python main.py --files myfile.mp3
 
 # Use different model

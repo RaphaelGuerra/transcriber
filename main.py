@@ -116,18 +116,106 @@ def run_interactive_mode(transcriber: TranscriberCore):
 
 
 def run_smart_mode(transcriber: TranscriberCore, config):
-    """Smart auto-mode: process existing files and exit."""
+    """Smart auto-mode with interactive file and model selection."""
     # Check for existing files
     files = transcriber.get_media_files()
 
     if files:
         print(f"📁 Found {len(files)} file(s) ready for processing")
-        print("🚀 Processing files with background capabilities...")
+        print("🎯 Choose what to process:")
+        print()
+
+        # Show file selection menu
+        print("📋 Available files:")
+        for i, file_path in enumerate(files, 1):
+            file_info = transcriber.file_handler.get_file_info(file_path)
+            print(f"{i:2d}. {file_path.name} ({file_info['size_mb']:.1f} MB)")
+
+        print("\nOptions:")
+        print("• Enter numbers (e.g., '1,3,5') to select specific files")
+        print("• Enter 'all' to process all files")
+        print("• Enter 'menu' for full interactive mode")
+
+        while True:
+            try:
+                choice = input("\nYour choice: ").strip().lower()
+
+                if choice == 'menu':
+                    run_interactive_mode(transcriber)
+                    return
+
+                if choice == 'all':
+                    selected_files = files
+                    break
+
+                # Parse number selections
+                indices = []
+                for part in choice.split(','):
+                    part = part.strip()
+                    if part.isdigit():
+                        idx = int(part) - 1
+                        if 0 <= idx < len(files):
+                            indices.append(idx)
+                        else:
+                            print(f"❌ Invalid file number: {part}")
+                            indices = []
+                            break
+
+                if indices:
+                    selected_files = [files[i] for i in indices]
+                    print(f"✅ Selected {len(selected_files)} file(s)")
+                    break
+                else:
+                    print("❌ No valid selections. Try again.")
+
+            except KeyboardInterrupt:
+                print("\n\n👋 Cancelled")
+                return
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                continue
+
+        # Show model selection
+        print("\n🎯 Choose transcription model:")
+        models = {
+            'tiny': '⚡ Fastest (good quality)',
+            'base': '⚖️  Balanced (default)',
+            'small': '📈 Better accuracy',
+            'medium': '🎯 High accuracy',
+            'large': '🏆 Best accuracy (slowest)'
+        }
+
+        for i, (model, desc) in enumerate(models.items(), 1):
+            default_marker = " (default)" if model == config.default_model else ""
+            print(f"{i}. {model}{default_marker} - {desc}")
+
+        while True:
+            try:
+                model_choice = input(f"\nSelect model (1-5) [2]: ").strip()
+
+                if not model_choice:
+                    selected_model = config.default_model
+                    break
+
+                if model_choice.isdigit():
+                    model_idx = int(model_choice) - 1
+                    model_names = list(models.keys())
+                    if 0 <= model_idx < len(model_names):
+                        selected_model = model_names[model_idx]
+                        break
+
+                print("❌ Please enter a number 1-5")
+
+            except KeyboardInterrupt:
+                print("\n\n👋 Cancelled")
+                return
+
+        print(f"\n🚀 Processing {len(selected_files)} file(s) with {selected_model} model...")
         print("💡 You can close the laptop lid safely during processing")
         print()
 
-        # Process existing files and exit (not continuous daemon)
-        successful, failed = transcriber.process_files_sequential(files, config.default_model)
+        # Process selected files with chosen model
+        successful, failed = transcriber.process_files_sequential(selected_files, selected_model)
 
         print("\n🎉 Processing completed!")
         print(f"   ✅ Successful: {successful}")
@@ -135,6 +223,7 @@ def run_smart_mode(transcriber: TranscriberCore, config):
             print(f"   ❌ Failed: {len(failed)}")
             for fail in failed:
                 print(f"      - {fail}")
+
     else:
         print("📁 No media files found in input_media/")
         print("💡 Add files to input_media/ folder or choose from menu:")
