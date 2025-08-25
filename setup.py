@@ -31,7 +31,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/yourusername/fast-transcriber",
     packages=find_packages(),
-    py_modules=["transcriber"],
+    py_modules=["transcriber_core", "main", "cli", "config", "daemon", "file_handler", "logger"],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: End Users/Desktop",
@@ -49,7 +49,7 @@ setup(
     install_requires=read_requirements(),
     entry_points={
         "console_scripts": [
-            "transcriber=transcriber:main",
+            "transcriber=main:main",
         ],
     },
     include_package_data=True,

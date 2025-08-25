@@ -28,6 +28,9 @@ class CLIArgs:
     verbose: bool
     batch_mode: bool
     resume: bool
+    daemon_action: Optional[str]
+    foreground: bool
+    list_files: bool
 
 
 class CLI:
@@ -147,6 +150,18 @@ Examples:
             "--resume", action="store_true", help="Resume interrupted transcription"
         )
 
+        # Daemon commands
+        daemon_group = parser.add_argument_group("Daemon Control")
+        daemon_group.add_argument(
+            "--daemon",
+            choices=["start", "stop", "restart", "status"],
+            help="Control the background daemon service"
+        )
+        daemon_group.add_argument(
+            "--foreground", "-f", action="store_true",
+            help="Run daemon in foreground (for debugging)"
+        )
+
         # Information commands
         info_group = parser.add_argument_group("Information")
         info_group.add_argument(
@@ -169,6 +184,10 @@ Examples:
         # Handle special information commands
         if parsed.list_models:
             self._list_models()
+            sys.exit(0)
+
+        if parsed.list_files:
+            self._list_files()
             sys.exit(0)
 
         # Adjust log level if verbose
@@ -202,6 +221,9 @@ Examples:
             verbose=parsed.verbose,
             batch_mode=parsed.batch,
             resume=parsed.resume,
+            daemon_action=parsed.daemon,
+            foreground=parsed.foreground,
+            list_files=parsed.list_files,
         )
 
     def _list_models(self):
@@ -217,7 +239,25 @@ Examples:
         print("Available Whisper models:")
         print("=" * 50)
         for model, description in models.items():
-            print("15")
+            print(f"{model:15} {description}")
+
+    def _list_files(self):
+        """List available media files."""
+        from transcriber_core import TranscriberCore
+        from config import get_config
+
+        transcriber = TranscriberCore(get_config())
+        files = transcriber.get_media_files()
+
+        if not files:
+            print("❌ No media files found in input_media/")
+            print("\nSupported formats: mp4, avi, mov, mkv, webm, flv, mp3, wav, m4a, aac, flac, ogg")
+            return
+
+        print(f"🎬 Found {len(files)} media file(s):")
+        for i, file_path in enumerate(files, 1):
+            file_info = transcriber.file_handler.get_file_info(file_path)
+            print(f"{i:2d}. {file_path.name} ({file_info['size_mb']:.1f} MB)")
 
     def get_config_from_args(self, args: CLIArgs) -> TranscriberConfig:
         """Create configuration from command-line arguments."""
@@ -296,6 +336,66 @@ Examples:
                         print(f"❌ Please enter a number between 1 and {len(items)}")
                 except ValueError:
                     print("❌ Please enter a valid number")
+
+    def handle_daemon_command(self, args: CLIArgs, config: TranscriberConfig):
+        """Handle daemon control commands."""
+        from daemon import TranscriberDaemon
+
+        daemon = TranscriberDaemon(config)
+
+        if args.daemon_action == "start":
+            print("🚀 Starting transcriber daemon...")
+            if daemon.start(daemonize=not args.foreground):
+                if args.foreground:
+                    print("✅ Daemon started in foreground mode")
+                else:
+                    print("✅ Daemon started in background mode")
+            else:
+                print("❌ Failed to start daemon")
+                return False
+
+        elif args.daemon_action == "stop":
+            print("🛑 Stopping transcriber daemon...")
+            if daemon.stop():
+                print("✅ Daemon stopped successfully")
+            else:
+                print("❌ Failed to stop daemon")
+                return False
+
+        elif args.daemon_action == "restart":
+            print("🔄 Restarting transcriber daemon...")
+            if daemon.stop():
+                print("   ✅ Daemon stopped")
+            else:
+                print("   ⚠️  Could not stop daemon (may not have been running)")
+
+            import time
+            time.sleep(2)
+
+            if daemon.start(daemonize=not args.foreground):
+                if args.foreground:
+                    print("   ✅ Daemon restarted in foreground mode")
+                else:
+                    print("   ✅ Daemon restarted in background mode")
+            else:
+                print("   ❌ Failed to restart daemon")
+                return False
+
+        elif args.daemon_action == "status":
+            status = daemon.status()
+            if status["running"]:
+                print("✅ Daemon is running")
+                print(f"   PID: {status['pid']}")
+                print(f"   CPU Usage: {status['cpu_percent']:.1f}%")
+                print(".1f")
+                print(f"   Status: {status['status']}")
+                import time
+                print(f"   Started: {time.ctime(status['started'])}")
+            else:
+                print("❌ Daemon is not running")
+                print(f"   Status: {status['message']}")
+
+        return True
 
     def display_welcome(self):
         """Display welcome message."""

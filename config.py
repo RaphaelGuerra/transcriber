@@ -62,6 +62,15 @@ class TranscriberConfig:
     verbose: bool = True
     progress_bar: bool = True
 
+    # Daemon settings
+    daemon_mode: bool = False
+    scan_interval_seconds: int = 30
+    sleep_monitoring_enabled: bool = True
+    auto_resume_after_wake: bool = True
+    max_concurrent_files: int = 1  # For daemon mode, process files sequentially
+    daemon_log_file: Optional[Path] = None
+    pid_file_path: Optional[Path] = None
+
     def __post_init__(self):
         """Initialize configuration and create directories."""
         # Convert string paths to Path objects if needed
