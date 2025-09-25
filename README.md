@@ -1,112 +1,40 @@
-# Simple Video/Audio Transcriber
+# Audio/Video Transcriber
 
-Just run it and it works! Automatically chooses the best processing mode for your situation.
+Small tool that transcribes audio and video files with an easy “drop & go” workflow.
 
-## Features
+This is a portfolio side project — exploring auto‑mode jobs, background processing, and a simple CLI around Whisper models. Not a production tool.
 
-- 🧠 **Smart Auto-Mode** - program decides what's best
-- 🔄 **Background processing** - works when laptop sleeps
-- 📁 **Drop & Go** - add files and run
-- 🚀 **Fast processing** with Whisper models
+## What It Does
+- Auto‑mode finds media in `input_media/` and guides you through selection
+- Lets you pick a Whisper model (tiny/base/small/medium/large)
+- Supports common audio/video formats; saves results to `output_transcriptions/`
+- Optional background daemon mode to watch for new files
 
-## Supported Formats
+## How It Works
+- Uses FFmpeg to extract/process audio when needed
+- Runs Whisper transcription with the selected model
+- Presents interactive prompts and progress; exits cleanly when done
 
-**Video**: MP4, AVI, MOV, MKV, WebM, FLV
-**Audio**: MP3, WAV, M4A, AAC, FLAC, OGG
-
-## Installation
-
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Run the application:**
-   ```bash
-   python main.py
-   ```
-
-## Usage
-
-### Smart Auto-Mode (Just Run It!)
+## Run Locally
+Prerequisites: Python 3.8+ and FFmpeg
 
 ```bash
+pip install -r requirements.txt
 python main.py
 ```
 
-**That's it!** The program automatically:
+Advanced:
+- Process specific files: `python main.py --files file1.mp3 file2.mp4`
+- Choose model: `python main.py --files file.mp3 --model base`
+- Daemon mode: `python main.py --daemon start --foreground`
 
-- ✅ **Detects files** in `input_media/` folder
-- ✅ **Shows interactive file selection** with sizes
-- ✅ **Lets you choose transcription model** (tiny/base/small/medium/large)
-- ✅ **Processes selected files** and exits cleanly
-- ✅ **Handles sleep/wake** during processing
-- ✅ **Saves results** to `output_transcriptions/`
+## Tech Stack
+- Python, FFmpeg
+- OpenAI Whisper models
 
-### Advanced Usage
+## Status & Learnings
+- Functional prototype to practice job scheduling, CLI ergonomics, and media handling
+- Next ideas: SRT/VTT export options, timestamps tuning, language auto‑detect
 
-```bash
-# Process specific files
-python main.py --files file1.mp3 file2.mp4
-
-# Use different model
-python main.py --files file.mp3 --model base
-
-# Continuous daemon mode (watches for new files)
-python main.py --daemon start --foreground
-
-# Check daemon status
-python main.py --daemon status
-
-# Stop daemon
-python main.py --daemon stop
-
-# List available files
-python main.py --list-files
-
-# List available models
-python main.py --list-models
-```
-
-### Directories
-
-- `input_media/` - Place your audio/video files here
-- `output_transcriptions/` - Transcriptions are saved here automatically
-- `temp/` - Temporary files (auto-cleaned)
-
-### Models
-
-- **tiny** - Fastest, good quality (default)
-- **base** - Good balance of speed and accuracy
-- **small** - Better accuracy, slower
-- **medium** - High accuracy, slower
-- **large** - Best accuracy, slowest
-
-## Examples
-
-### Interactive Mode (Recommended)
-```bash
-python main.py
-# → Shows file list with sizes
-# → Select files: "1,3,5" or "all"
-# → Choose model: 1=tiny, 2=base, 3=small, 4=medium, 5=large
-# → Processes selected files automatically
-```
-
-### Direct Commands
-```bash
-# Process specific files
-python main.py --files myfile.mp3
-
-# Use different model
-python main.py --files myfile.mp3 --model base
-
-# Background processing
-python main.py --daemon start --foreground
-```
-
-## Requirements
-
-- Python 3.8+
-- FFmpeg (install with `brew install ffmpeg` on macOS)
-- Dependencies: `pip install -r requirements.txt`
+## License
+Personal portfolio project — not for production use.
