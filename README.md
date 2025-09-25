@@ -37,4 +37,4 @@ Advanced:
 - Next ideas: SRT/VTT export options, timestamps tuning, language auto‑detect
 
 ## License
-Personal portfolio project — not for production use.
+All rights reserved. Personal portfolio project — not for production use.
