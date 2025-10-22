@@ -1,5 +1,18 @@
 # Audio/Video Transcriber
 
+Last updated: 2025-10-22
+
+## Table of Contents
+
+<!-- TOC start -->
+- [What It Does](#what-it-does)
+- [How It Works](#how-it-works)
+- [Run Locally](#run-locally)
+- [Tech Stack](#tech-stack)
+- [Status & Learnings](#status-learnings)
+- [License](#license)
+<!-- TOC end -->
+
 Small tool that transcribes audio and video files with an easy “drop & go” workflow.
 
 This is a portfolio side project — exploring auto‑mode jobs, background processing, and a simple CLI around Whisper models. Not a production tool.
