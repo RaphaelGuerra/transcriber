@@ -49,6 +49,19 @@ Advanced:
 - Choose model: `python main.py --files file.mp3 --model base`
 - Daemon mode: `python main.py --daemon start --foreground`
 
+## Usage
+
+```bash
+# Interactive mode (auto-detects media in input_media/)
+python main.py
+
+# One-shot transcription with the "small" Whisper model
+python main.py --files input_media/clip.mp4 --model small
+
+# Start daemon watcher and stay in foreground (debug)
+python main.py --daemon start --foreground
+```
+
 ## Tech Stack
 
 - Python, FFmpeg
