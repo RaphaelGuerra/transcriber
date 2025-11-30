@@ -17,7 +17,6 @@ Last updated: 2025-11-30
 [![Lint](https://github.com/RaphaelGuerra/transcriber/actions/workflows/readme-lint.yml/badge.svg)](https://github.com/RaphaelGuerra/transcriber/actions/workflows/readme-lint.yml)
 [![Security](https://github.com/RaphaelGuerra/transcriber/actions/workflows/security.yml/badge.svg)](https://github.com/RaphaelGuerra/transcriber/actions/workflows/security.yml)
 
-
 Small tool that transcribes audio and video files with an easy “drop & go”
 workflow.
 
