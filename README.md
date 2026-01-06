@@ -1,6 +1,6 @@
 # Audio/Video Transcriber
 
-Last updated: 2025-12-24
+Last updated: 2026-01-06
 
 ## Table of Contents
 
