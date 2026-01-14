@@ -6,6 +6,7 @@ This script handles both interactive and daemon modes of operation.
 """
 
 import sys
+import multiprocessing as mp
 from pathlib import Path
 
 from cli import CLI, CLIArgs
