@@ -162,6 +162,10 @@ class TranscriberConfig:
             issues.append(
                 f"Invalid default model: {self.default_model}. Available: {self.available_models}"
             )
+        if self.output_format not in ["txt", "srt", "vtt"]:
+            issues.append(
+                f"Invalid output format: {self.output_format}. Choose from txt, srt, vtt."
+            )
 
         # Check directory accessibility
         for dir_path, dir_name in [

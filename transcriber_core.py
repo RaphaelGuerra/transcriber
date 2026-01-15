@@ -27,6 +27,7 @@ from tqdm import tqdm
 from config import TranscriberConfig, get_config
 from file_handler import FileHandler
 from logger import get_logger
+from subtitle_formats import segments_to_srt, segments_to_vtt
 
 
 # Custom Exceptions
@@ -208,9 +209,10 @@ class TranscriberCore:
             transcription = result["text"].strip()
             processing_time = time.time() - start_time
 
+            output_format = (self.config.output_format or "txt").lower()
             # Generate output filename and path
             output_filename = self.file_handler.generate_output_filename(
-                file_path, self.config.timestamp_format
+                file_path, self.config.timestamp_format, output_format
             )
             output_path = self.config.output_dir / output_filename
 
@@ -227,8 +229,12 @@ class TranscriberCore:
                     "model_load_time": self.model_load_time,
                 }
 
+            formatted_output, allow_metadata = self._format_output(result)
+            if not allow_metadata:
+                metadata = None
+
             # Save transcription
-            self.file_handler.save_transcription(transcription, output_path, metadata)
+            self.file_handler.save_transcription(formatted_output, output_path, metadata)
 
             self.logger.info(f"   ✅ Completed in {processing_time:.1f} seconds")
             self.logger.info(f"   📝 Characters: {len(transcription):,}")
@@ -259,6 +265,26 @@ class TranscriberCore:
             self.is_processing = False
             self.current_file = None
             gc.collect()
+
+    def _format_output(self, result: Dict[str, Any]) -> Tuple[str, bool]:
+        """Format transcription output based on config."""
+        output_format = (self.config.output_format or "txt").lower()
+        transcription = (result.get("text") or "").strip()
+        if output_format == "txt":
+            return transcription, True
+
+        segments = result.get("segments") or []
+        if not segments:
+            self.logger.warning("No segments available; falling back to plain text output.")
+            return transcription, True
+
+        if output_format == "srt":
+            return segments_to_srt(segments), False
+        if output_format == "vtt":
+            return segments_to_vtt(segments), False
+
+        self.logger.warning(f"Unknown output format '{output_format}', using txt.")
+        return transcription, True
 
     def _transcribe_with_retry(self, model, file_path: Path, max_retries: int) -> Optional[Dict]:
         """Transcribe with retry logic for handling temporary failures."""
@@ -430,7 +456,7 @@ class TranscriberCore:
 
     def show_outputs(self) -> None:
         """Display existing transcription files."""
-        output_files = self.file_handler.get_existing_transcriptions()
+        output_files = self.file_handler.get_existing_transcriptions(["txt", "srt", "vtt"])
 
         if not output_files:
             self.logger.info("📁 No transcription files found")

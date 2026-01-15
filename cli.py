@@ -21,6 +21,7 @@ class CLIArgs:
     workers: Optional[int]
     input_dir: Optional[Path]
     output_dir: Optional[Path]
+    output_format: Optional[str]
     config_file: Optional[Path]
     log_level: str
     log_file: Optional[Path]
@@ -106,6 +107,14 @@ Examples:
             type=Path,
             metavar="PATH",
             help="Output directory for transcriptions (default: output_transcriptions)",
+        )
+
+        output_group = parser.add_argument_group("Output Options")
+        output_group.add_argument(
+            "--format",
+            dest="output_format",
+            choices=["txt", "srt", "vtt"],
+            help="Output format for transcriptions (default: txt)",
         )
 
         # Configuration
@@ -214,6 +223,7 @@ Examples:
             workers=parsed.workers,
             input_dir=parsed.input_dir,
             output_dir=parsed.output_dir,
+            output_format=parsed.output_format,
             config_file=parsed.config,
             log_level=parsed.log_level,
             log_file=parsed.log_file,
@@ -270,6 +280,8 @@ Examples:
             config.input_dir = args.input_dir
         if args.output_dir:
             config.output_dir = args.output_dir
+        if args.output_format:
+            config.output_format = args.output_format
 
         # Validate configuration
         issues = config.validate()

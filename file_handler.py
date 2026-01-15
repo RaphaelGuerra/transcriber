@@ -77,11 +77,15 @@ class FileHandler:
             return size_mb / 10
 
     def generate_output_filename(
-        self, input_file: Path, timestamp_format: str = "%Y%m%d_%H%M%S"
+        self,
+        input_file: Path,
+        timestamp_format: str = "%Y%m%d_%H%M%S",
+        output_format: str = "txt",
     ) -> str:
         """Generate output filename with timestamp."""
         timestamp = datetime.now().strftime(timestamp_format)
-        return f"{input_file.stem}_{timestamp}.txt"
+        suffix = output_format.lower().lstrip(".")
+        return f"{input_file.stem}_{timestamp}.{suffix}"
 
     def save_transcription(
         self, content: str, output_path: Path, metadata: Optional[Dict] = None
@@ -97,9 +101,14 @@ class FileHandler:
 
             f.write(content)
 
-    def get_existing_transcriptions(self) -> List[Path]:
+    def get_existing_transcriptions(self, formats: Optional[List[str]] = None) -> List[Path]:
         """Get list of existing transcription files."""
-        return list(self.output_dir.glob("*.txt"))
+        formats = formats or ["txt", "srt", "vtt"]
+        files: List[Path] = []
+        for fmt in formats:
+            suffix = fmt.lower().lstrip(".")
+            files.extend(self.output_dir.glob(f"*.{suffix}"))
+        return files
 
     def get_transcription_info(self, transcription_path: Path) -> Dict:
         """Get information about a transcription file."""
