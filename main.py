@@ -11,7 +11,8 @@ from pathlib import Path
 
 from cli import CLI, CLIArgs
 from config import TranscriberConfig, get_config
-from logger import setup_logging
+from logger import setup_logging, get_logger
+from preflight import run_preflight
 from transcriber_core import TranscriberCore
 
 
@@ -249,6 +250,11 @@ def main():
         if args.daemon_action:
             success = cli.handle_daemon_command(args, config)
             sys.exit(0 if success else 1)
+
+        # Preflight checks
+        preflight_logger = get_logger("preflight")
+        if not run_preflight(config, preflight_logger):
+            sys.exit(1)
 
         # Smart auto-mode: program decides best approach
         if not args.batch_mode and not args.files:
