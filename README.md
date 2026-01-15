@@ -27,7 +27,7 @@ processing, and a simple CLI around Whisper models. Not a production tool.
 
 - Auto‑mode finds media in `input_media/` and guides you through selection
 - Lets you pick a Whisper model (tiny/base/small/medium/large)
-- Supports common audio/video formats; saves results to `output_transcriptions/`
+- Supports common audio/video formats; saves TXT (default) or SRT/VTT to `output_transcriptions/`
 - Optional background daemon mode to watch for new files
 
 ## How It Works
@@ -62,6 +62,9 @@ python main.py --files input_media/clip.mp4 --model small
 
 # Start daemon watcher and stay in foreground (debug)
 python main.py --daemon start --foreground
+
+# Export subtitles directly
+python main.py --files input_media/clip.mp4 --format srt
 ```
 
 ## Tech Stack
@@ -73,7 +76,7 @@ python main.py --daemon start --foreground
 
 - Functional prototype to practice job scheduling, CLI ergonomics, and media
   handling
-- Next ideas: SRT/VTT export options, timestamps tuning, language auto‑detect
+- Next ideas: timestamps tuning, language auto‑detect
 
 ## License
 
