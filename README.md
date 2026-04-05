@@ -1,6 +1,6 @@
 # Audio/Video Transcriber
 
-Last updated: 2026-03-23
+Last updated: 2026-04-05
 
 ## Table of Contents
 
@@ -67,6 +67,14 @@ python3 main.py --daemon start --foreground
 
 # Export subtitles directly
 python3 main.py --files input_media/clip.m4a --format srt
+```
+
+### Quick Checks
+
+```bash
+ffmpeg -version
+ffprobe -version
+python3 -m unittest discover -s tests -v
 ```
 
 ### Voice Memos Workflow
