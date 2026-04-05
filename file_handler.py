@@ -3,7 +3,6 @@ File handling utilities for the transcriber application
 """
 
 import hashlib
-import json
 import os
 import shutil
 from datetime import datetime
@@ -144,9 +143,9 @@ class FileHandler:
             return True, 0.0  # Assume enough space if we can't check
 
     def validate_file(
-        self, file_path: Path, max_size_gb: float = 2.0
+        self, file_path: Path, max_size_gb: Optional[float] = None
     ) -> Tuple[bool, str]:
-        """Validate a media file."""
+        """Validate that a media file is readable before deeper probing."""
         if not file_path.exists():
             return False, "File does not exist"
 
@@ -156,9 +155,25 @@ class FileHandler:
         if not os.access(file_path, os.R_OK):
             return False, "File is not readable"
 
-        file_size_gb = file_path.stat().st_size / (1024**3)
-        if file_size_gb > max_size_gb:
-            return False, f"File too large: {file_size_gb:.2f} GB (max: {max_size_gb:.2f} GB)"
+        if max_size_gb is not None:
+            file_size_gb = file_path.stat().st_size / (1024**3)
+            if file_size_gb > max_size_gb:
+                return False, (
+                    f"File too large: {file_size_gb:.2f} GB "
+                    f"(max: {max_size_gb:.2f} GB)"
+                )
+
+        return True, "OK"
+
+    def validate_probe_result(
+        self, duration_seconds: float, codec_name: Optional[str]
+    ) -> Tuple[bool, str]:
+        """Validate decoded media characteristics from probe results."""
+        if duration_seconds <= 0:
+            return False, "Media duration could not be determined"
+
+        if not codec_name:
+            return False, "Audio codec could not be determined"
 
         return True, "OK"
 

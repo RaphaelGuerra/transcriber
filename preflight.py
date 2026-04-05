@@ -42,11 +42,22 @@ def run_preflight(config, logger: Optional[object] = None) -> bool:
             logger.warning(f"  - {issue}")
 
     ffmpeg_path = shutil.which("ffmpeg")
+    ffprobe_path = shutil.which("ffprobe")
     if not ffmpeg_path:
-        logger.error("❌ FFmpeg not found in PATH. Install ffmpeg to process media files.")
+        logger.error(
+            "❌ FFmpeg not found in PATH. Install FFmpeg to normalize audio before transcription."
+        )
         ok = False
     else:
         logger.info(f"🎬 FFmpeg detected: {ffmpeg_path}")
+
+    if not ffprobe_path:
+        logger.error(
+            "❌ ffprobe not found in PATH. Install FFmpeg (which includes ffprobe) to inspect audio files."
+        )
+        ok = False
+    else:
+        logger.info(f"🔎 ffprobe detected: {ffprobe_path}")
 
     cache_dir = get_whisper_cache_dir()
     try:

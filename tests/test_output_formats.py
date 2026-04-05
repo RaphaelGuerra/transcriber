@@ -31,6 +31,12 @@ class TestOutputFormats(unittest.TestCase):
         self.assertIn("00:00:00.000 --> 00:00:01.234", vtt)
         self.assertIn("Hello", vtt)
 
+    def test_segments_to_srt_preserves_absolute_timestamps(self):
+        segments = [{"start": 1200.0, "end": 1204.0, "text": "Chunk merged"}]
+        srt = segments_to_srt(segments).strip()
+        self.assertIn("00:20:00,000 --> 00:20:04,000", srt)
+        self.assertIn("Chunk merged", srt)
+
 
 if __name__ == "__main__":
     unittest.main()

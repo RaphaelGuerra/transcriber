@@ -27,7 +27,9 @@ processing, and a simple CLI around Whisper models. Not a production tool.
 
 - Auto‑mode finds media in `input_media/` and guides you through selection
 - Lets you pick a Whisper model (tiny/base/small/medium/large)
-- Supports common audio/video formats; saves TXT (default) or SRT/VTT to `output_transcriptions/`
+- Supports common audio/video formats, including exported iPhone Voice Memos `.m4a`
+- Normalizes audio before transcription and auto-chunks long recordings for more reliable Whisper runs
+- Saves TXT (default) or SRT/VTT to `output_transcriptions/`
 - Optional background daemon mode to watch for new files
 
 ## How It Works
@@ -38,34 +40,40 @@ processing, and a simple CLI around Whisper models. Not a production tool.
 
 ## Run Locally
 
-Prerequisites: Python 3.8+ and FFmpeg
+Prerequisites: Python 3.8+ and FFmpeg (including `ffprobe`)
 
 ```bash
 pip install -r requirements.txt
-python main.py
+python3 main.py
 ```
 
 Advanced:
 
-- Process specific files: `python main.py --files file1.mp3 file2.mp4`
-- Choose model: `python main.py --files file.mp3 --model base`
-- Daemon mode: `python main.py --daemon start --foreground`
+- Process specific files: `python3 main.py --files file1.mp3 file2.mp4`
+- Choose model: `python3 main.py --files file.m4a --model base`
+- Daemon mode: `python3 main.py --daemon start --foreground`
 
 ## Usage
 
 ```bash
 # Interactive mode (auto-detects media in input_media/)
-python main.py
+python3 main.py
 
 # One-shot transcription with the "small" Whisper model
-python main.py --files input_media/clip.mp4 --model small
+python3 main.py --files input_media/clip.m4a --model small
 
 # Start daemon watcher and stay in foreground (debug)
-python main.py --daemon start --foreground
+python3 main.py --daemon start --foreground
 
 # Export subtitles directly
-python main.py --files input_media/clip.mp4 --format srt
+python3 main.py --files input_media/clip.m4a --format srt
 ```
+
+### Voice Memos Workflow
+
+- Export a recording from the iPhone Voice Memos app as `.m4a`
+- Place it in `input_media/` or pass it with `--files`
+- The app probes the file with `ffprobe`, converts it to mono 16 kHz WAV, and automatically chunks long recordings before merging the final transcript back into one TXT/SRT/VTT output
 
 ## Tech Stack
 

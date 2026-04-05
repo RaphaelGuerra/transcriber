@@ -9,25 +9,40 @@ This is the main transcriber functionality that combines:
 """
 
 import gc
-import json
 import multiprocessing as mp
-import os
-import sys
 import time
-import traceback
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
-import torch
-import whisper
-from tqdm import tqdm
+try:
+    from tqdm import tqdm
+except ImportError:  # pragma: no cover - exercised in dependency-light test envs
+    def tqdm(iterable, **_kwargs):
+        return iterable
 
 from config import TranscriberConfig, get_config
 from file_handler import FileHandler
 from logger import get_logger
+from media_pipeline import (
+    PreparedAudio,
+    MediaProcessingError,
+    probe_media,
+    prepare_audio_for_transcription,
+    merge_chunk_results,
+)
 from subtitle_formats import segments_to_srt, segments_to_vtt
+
+try:
+    import torch
+except ImportError:  # pragma: no cover - exercised in dependency-light test envs
+    torch = None
+
+try:
+    import whisper
+except ImportError:  # pragma: no cover - exercised in dependency-light test envs
+    whisper = None
 
 
 # Custom Exceptions
@@ -106,6 +121,11 @@ class TranscriberCore:
     def _detect_hardware(self):
         """Detect available hardware for optimization."""
         try:
+            if torch is None:
+                self.logger.warning("⚠️  PyTorch not installed, assuming CPU-only execution")
+                self.has_cuda = False
+                return
+
             self.has_cuda = torch.cuda.is_available()
             if self.has_cuda:
                 self.gpu_count = torch.cuda.device_count()
@@ -139,6 +159,11 @@ class TranscriberCore:
             start_time = time.time()
 
             try:
+                if whisper is None:
+                    raise ModelLoadError(
+                        "openai-whisper is not installed. Install dependencies before transcribing."
+                    )
+
                 self.logger.info(f"📥 Loading {model_name} model...")
 
                 # Set device based on availability
@@ -178,30 +203,55 @@ class TranscriberCore:
         start_time = time.time()
         self.current_file = file_path
         self.is_processing = True
+        prepared_audio: Optional[PreparedAudio] = None
 
         try:
             self.logger.info(f"🎬 Transcribing: {file_path.name}")
 
             # Validate file
-            is_valid, error_msg = self.file_handler.validate_file(
-                file_path, self.config.max_file_size_gb
-            )
+            is_valid, error_msg = self.file_handler.validate_file(file_path)
             if not is_valid:
                 raise TranscriptionError(f"File validation failed: {error_msg}")
 
-            # Load model
+            probe_info = probe_media(file_path)
+            is_valid_probe, probe_error = self.file_handler.validate_probe_result(
+                probe_info.duration_seconds, probe_info.codec_name
+            )
+            if not is_valid_probe:
+                raise TranscriptionError(f"Media validation failed: {probe_error}")
+
+            self.logger.info(
+                "   🎧 Detected audio: "
+                f"container={probe_info.container}, codec={probe_info.codec_name}, "
+                f"duration={probe_info.duration_seconds / 60:.1f} min, "
+                f"sample_rate={probe_info.sample_rate_hz or 'unknown'} Hz, "
+                f"channels={probe_info.channels or 'unknown'}"
+            )
+
+            prepared_audio = prepare_audio_for_transcription(
+                file_path=file_path,
+                temp_dir=self.config.temp_dir,
+                probe_info=probe_info,
+                preprocess_audio=self.config.preprocess_audio,
+                long_audio_threshold_minutes=self.config.long_audio_threshold_minutes,
+                chunk_duration_minutes=self.config.chunk_duration_minutes,
+                chunk_overlap_seconds=self.config.chunk_overlap_seconds,
+            )
+            self.logger.info(
+                f"   🧹 Prepared audio at 16 kHz mono: {prepared_audio.normalized_path.name}"
+            )
+            if len(prepared_audio.chunks) > 1:
+                self.logger.info(
+                    "   ✂️  Auto-chunked into "
+                    f"{len(prepared_audio.chunks)} pieces "
+                    f"({self.config.chunk_duration_minutes} min with "
+                    f"{self.config.chunk_overlap_seconds}s overlap)"
+                )
+
+            # Load model after decode/probe succeeds.
             model = self.load_model(model_name)
 
-            # Estimate duration for progress context
-            file_info = self.file_handler.get_file_info(file_path)
-            file_type = self.config.supported_extensions.get(
-                file_path.suffix.lower(), "video"
-            )
-            estimated_minutes = self.file_handler.estimate_duration(file_path, file_type)
-            self.logger.info(f"   ⏱️  Estimated duration: ~{estimated_minutes:.1f} minutes")
-
-            # Transcribe with retry logic
-            result = self._transcribe_with_retry(model, file_path, retry_count)
+            result = self._transcribe_prepared_audio(model, prepared_audio, retry_count)
 
             if not result or "text" not in result:
                 raise TranscriptionError("Transcription failed - no text returned")
@@ -227,6 +277,12 @@ class TranscriberCore:
                     "timestamp": datetime.now().isoformat(),
                     "device": "cuda" if self.has_cuda else "cpu",
                     "model_load_time": self.model_load_time,
+                    "duration_seconds": probe_info.duration_seconds,
+                    "audio_codec": probe_info.codec_name,
+                    "audio_container": probe_info.container,
+                    "sample_rate_hz": probe_info.sample_rate_hz,
+                    "channels": probe_info.channels,
+                    "chunk_count": len(prepared_audio.chunks),
                 }
 
             formatted_output, allow_metadata = self._format_output(result)
@@ -248,6 +304,18 @@ class TranscriberCore:
                 metadata=metadata
             )
 
+        except MediaProcessingError as e:
+            processing_time = time.time() - start_time
+            error_msg = f"Error preparing {file_path.name}: {e}"
+            self.logger.error(f"   ❌ {error_msg}")
+
+            return ProcessingResult(
+                success=False,
+                file_path=file_path,
+                output_path=None,
+                processing_time=processing_time,
+                error_message=error_msg
+            )
         except Exception as e:
             processing_time = time.time() - start_time
             error_msg = f"Error processing {file_path.name}: {e}"
@@ -264,6 +332,8 @@ class TranscriberCore:
         finally:
             self.is_processing = False
             self.current_file = None
+            if prepared_audio is not None:
+                prepared_audio.cleanup()
             gc.collect()
 
     def _format_output(self, result: Dict[str, Any]) -> Tuple[str, bool]:
@@ -308,6 +378,34 @@ class TranscriberCore:
                     raise e
 
         return None
+
+    def _transcribe_prepared_audio(
+        self,
+        model: Any,
+        prepared_audio: PreparedAudio,
+        retry_count: int,
+    ) -> Dict[str, Any]:
+        """Transcribe prepared audio and merge chunked results when needed."""
+        if len(prepared_audio.chunks) == 1:
+            return self._transcribe_with_retry(
+                model, prepared_audio.chunks[0].path, retry_count
+            ) or {"text": "", "segments": []}
+
+        chunk_results = []
+        for index, chunk in enumerate(prepared_audio.chunks, start=1):
+            self.logger.info(
+                f"   🧩 Chunk {index}/{len(prepared_audio.chunks)} "
+                f"({chunk.start_seconds / 60:.1f}-{chunk.end_seconds / 60:.1f} min)"
+            )
+            result = self._transcribe_with_retry(model, chunk.path, retry_count)
+            if not result:
+                raise TranscriptionError(
+                    f"Chunk {index} returned no transcription result"
+                )
+            chunk_results.append((chunk, result))
+
+        self.logger.info("   🔗 Merging chunk transcripts into one timeline")
+        return merge_chunk_results(chunk_results)
 
     def process_files_sequential(
         self,
@@ -364,10 +462,8 @@ class TranscriberCore:
         self.logger.info("=" * 60)
 
         # Prepare arguments for multiprocessing
-        args = [
-            (file_path, model_name, str(self.config.output_dir))
-            for file_path in files
-        ]
+        config_data = asdict(self.config)
+        args = [(file_path, model_name, config_data) for file_path in files]
 
         successful = 0
         failed = []
@@ -401,30 +497,18 @@ class TranscriberCore:
         return successful, failed
 
     @staticmethod
-    def _worker_transcribe(args: Tuple[Path, str, str]) -> Tuple[bool, str, Optional[str]]:
+    def _worker_transcribe(
+        args: Tuple[Path, str, Dict[str, Any]]
+    ) -> Tuple[bool, str, Optional[str]]:
         """Worker function for multiprocessing."""
-        file_path, model_name, output_dir = args
+        file_path, model_name, config_data = args
 
         try:
-            # Load model in worker process
-            model = whisper.load_model(model_name)
-            result = model.transcribe(str(file_path), verbose=False)
-
-            if result and "text" in result:
-                transcription = result["text"].strip()
-
-                # Save transcription
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                output_filename = f"{file_path.stem}_{timestamp}.txt"
-                output_path = Path(output_dir) / output_filename
-
-                with open(output_path, "w", encoding="utf-8") as f:
-                    f.write(transcription)
-
-                return True, file_path.name, str(output_path)
-            else:
-                return False, file_path.name, None
-
+            worker = TranscriberCore(TranscriberConfig(**config_data))
+            result = worker.transcribe_file(file_path, model_name)
+            if result.success and result.output_path:
+                return True, file_path.name, str(result.output_path)
+            return False, file_path.name, result.error_message
         except Exception as e:
             return False, file_path.name, str(e)
 

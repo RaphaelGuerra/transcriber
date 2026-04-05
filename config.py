@@ -28,6 +28,10 @@ class TranscriberConfig:
     max_workers: Optional[int] = None  # None = auto-detect
     parallel_processing: bool = True
     memory_limit_gb: float = 4.0
+    preprocess_audio: bool = True
+    long_audio_threshold_minutes: int = 30
+    chunk_duration_minutes: int = 20
+    chunk_overlap_seconds: int = 2
 
     # File settings
     supported_extensions: Dict[str, str] = field(
@@ -55,7 +59,7 @@ class TranscriberConfig:
     timestamp_format: str = "%Y%m%d_%H%M%S"
 
     # Performance settings
-    chunk_size_mb: int = 25
+    chunk_size_mb: int = 25  # Deprecated in favor of duration-based chunking.
     max_file_size_gb: float = 2.0
 
     # UI settings
@@ -187,6 +191,12 @@ class TranscriberConfig:
             issues.append("max_file_size_gb must be positive")
         if self.chunk_size_mb <= 0:
             issues.append("chunk_size_mb must be positive")
+        if self.long_audio_threshold_minutes <= 0:
+            issues.append("long_audio_threshold_minutes must be positive")
+        if self.chunk_duration_minutes <= 0:
+            issues.append("chunk_duration_minutes must be positive")
+        if self.chunk_overlap_seconds < 0:
+            issues.append("chunk_overlap_seconds cannot be negative")
 
         return issues
 
