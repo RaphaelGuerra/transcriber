@@ -85,10 +85,23 @@ class TranscriberConfig:
         if isinstance(self.temp_dir, str):
             self.temp_dir = Path(self.temp_dir)
 
+        # Normalize to absolute paths so daemonized mode is stable even after cwd changes.
+        self.input_dir = self._to_absolute_path(self.input_dir)
+        self.output_dir = self._to_absolute_path(self.output_dir)
+        self.temp_dir = self._to_absolute_path(self.temp_dir)
+
         # Create directories
         self.input_dir.mkdir(exist_ok=True)
         self.output_dir.mkdir(exist_ok=True)
         self.temp_dir.mkdir(exist_ok=True)
+
+    @staticmethod
+    def _to_absolute_path(path: Path) -> Path:
+        """Normalize a path into an absolute path anchored to the current cwd."""
+        path = path.expanduser()
+        if path.is_absolute():
+            return path.resolve()
+        return (Path.cwd() / path).resolve()
 
     @classmethod
     def from_file(cls, config_path: Union[str, Path]) -> "TranscriberConfig":

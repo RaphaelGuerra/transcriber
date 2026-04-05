@@ -317,7 +317,7 @@ Examples:
 
         print(f"\n{prompt}")
         for i, item in enumerate(items, 1):
-            print("2d")
+            print(f"{i:2d}. {item}")
 
         if allow_multiple:
             print(
@@ -399,7 +399,6 @@ Examples:
                 print("✅ Daemon is running")
                 print(f"   PID: {status['pid']}")
                 print(f"   CPU Usage: {status['cpu_percent']:.1f}%")
-                print(".1f")
                 print(f"   Status: {status['status']}")
                 import time
                 print(f"   Started: {time.ctime(status['started'])}")

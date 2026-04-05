@@ -16,6 +16,24 @@ from preflight import run_preflight
 from transcriber_core import TranscriberCore
 
 
+def process_files_with_mode(
+    transcriber: TranscriberCore,
+    files: list[Path],
+    model_name: str,
+    args: CLIArgs,
+    config: TranscriberConfig,
+):
+    """Process files honoring CLI/config processing mode settings."""
+    prefer_parallel = args.parallel if args.parallel is not None else config.parallel_processing
+    can_parallel = len(files) > 1
+
+    if prefer_parallel and can_parallel:
+        max_workers = args.workers if args.workers is not None else config.max_workers
+        return transcriber.process_files_parallel(files, model_name, max_workers)
+
+    return transcriber.process_files_sequential(files, model_name)
+
+
 def run_interactive_mode(transcriber: TranscriberCore):
     """Run the interactive mode for the transcriber."""
     while True:
@@ -273,8 +291,8 @@ def main():
                     sys.exit(1)
 
                 print(f"📁 Processing {len(files_to_process)} specified file(s)")
-                successful, failed = transcriber.process_files_sequential(
-                    files_to_process, args.model
+                successful, failed = process_files_with_mode(
+                    transcriber, files_to_process, args.model, args, config
                 )
 
             else:
@@ -285,8 +303,8 @@ def main():
                     sys.exit(1)
 
                 print(f"📁 Found {len(files)} file(s) in input directory")
-                successful, failed = transcriber.process_files_sequential(
-                    files, args.model
+                successful, failed = process_files_with_mode(
+                    transcriber, files, args.model, args, config
                 )
 
             # Summary

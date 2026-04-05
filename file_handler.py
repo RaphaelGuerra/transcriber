@@ -40,11 +40,11 @@ class FileHandler:
 
         return media_files
 
-    def get_file_info(self, file_path: Path) -> Dict:
+    def get_file_info(self, file_path: Path, include_hash: bool = False) -> Dict:
         """Get detailed information about a file."""
         stat = file_path.stat()
 
-        return {
+        info = {
             "path": file_path,
             "name": file_path.name,
             "stem": file_path.stem,
@@ -53,8 +53,10 @@ class FileHandler:
             "size_mb": stat.st_size / (1024 * 1024),
             "modified": datetime.fromtimestamp(stat.st_mtime),
             "created": datetime.fromtimestamp(stat.st_ctime),
-            "hash": self.get_file_hash(file_path),
         }
+        if include_hash:
+            info["hash"] = self.get_file_hash(file_path)
+        return info
 
     def get_file_hash(self, file_path: Path, algorithm: str = "md5") -> str:
         """Calculate file hash for integrity checking."""
@@ -172,7 +174,7 @@ class FileHandler:
         if duration_seconds <= 0:
             return False, "Media duration could not be determined"
 
-        if not codec_name:
+        if not codec_name or codec_name.strip().lower() == "unknown":
             return False, "Audio codec could not be determined"
 
         return True, "OK"

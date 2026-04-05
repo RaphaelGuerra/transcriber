@@ -518,7 +518,6 @@ def main():
             print("✅ Daemon is running")
             print(f"   PID: {status['pid']}")
             print(f"   CPU: {status['cpu_percent']:.1f}%")
-            print(".1f")
             print(f"   Status: {status['status']}")
             print(f"   Started: {time.ctime(status['started'])}")
         else:
